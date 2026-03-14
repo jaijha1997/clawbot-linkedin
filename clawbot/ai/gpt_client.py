@@ -3,8 +3,8 @@
 import logging
 from typing import Any
 
-import google.generativeai as genai
-from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
+from google import genai
+from google.genai import errors as genai_errors
 
 from clawbot.ai.prompt_builder import build_system_prompt, build_user_prompt
 from clawbot.utils.exceptions import AIError
@@ -22,47 +22,24 @@ class GPTClient:
 
     def __init__(self, config):
         self.config = config
-        genai.configure(api_key=config.gemini_api_key)
-        self._model = genai.GenerativeModel(
-            model_name=config.ai_model,
-            generation_config=genai.GenerationConfig(
-                max_output_tokens=config.ai_max_tokens,
-                temperature=config.ai_temperature,
-            ),
-        )
+        self._client = genai.Client(api_key=config.gemini_api_key)
         self._total_input_tokens = 0
         self._total_output_tokens = 0
 
-    @retry(max_attempts=3, base_delay=5.0, exceptions=(ResourceExhausted, ServiceUnavailable))
+    @retry(max_attempts=3, base_delay=5.0, exceptions=(Exception,))
     def generate_message(self, profile: dict[str, Any]) -> str:
-        """Generate a personalized outreach message for the given profile.
-
-        Args:
-            profile: Parsed profile dict from ProfileParser.
-
-        Returns:
-            The generated message text.
-
-        Raises:
-            AIError: If generation fails or the response is invalid.
-        """
+        """Generate a personalized outreach message for the given profile."""
         system_prompt = build_system_prompt(self.config)
         user_prompt = build_user_prompt(profile, self.config)
 
-        # Gemini combines system + user via the system_instruction param
-        model = genai.GenerativeModel(
-            model_name=self.config.ai_model,
-            system_instruction=system_prompt,
-            generation_config=genai.GenerationConfig(
-                max_output_tokens=self.config.ai_max_tokens,
-                temperature=self.config.ai_temperature,
-            ),
-        )
+        # Combine system + user prompt (Gemini handles via contents)
+        full_prompt = f"{system_prompt}\n\n{user_prompt}"
 
         try:
-            response = model.generate_content(user_prompt)
-        except (ResourceExhausted, ServiceUnavailable):
-            raise  # Let @retry handle these
+            response = self._client.models.generate_content(
+                model=self.config.ai_model,
+                contents=full_prompt,
+            )
         except Exception as exc:
             raise AIError(f"Gemini call failed: {exc}") from exc
 

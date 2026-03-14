@@ -1,8 +1,7 @@
 selenium==4.18.1
 undetected-chromedriver==3.5.5
 selenium-stealth==1.0.6
-google-generativeai==0.8.3
-google-api-core==2.19.2
+google-genai>=1.0.0
 apscheduler==3.10.4
 pyyaml==6.0.1
 python-dotenv==1.0.1
