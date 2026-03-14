@@ -13,8 +13,9 @@ from clawbot.browser.anti_detect import human_delay, human_scroll
 
 logger = logging.getLogger(__name__)
 
-# CSS selectors for LinkedIn search results (as of 2024 — update if LinkedIn changes)
-RESULT_LINK_SELECTOR = "a.app-aware-link[href*='/in/']"
+# CSS selectors for LinkedIn search results
+# Using broad href match since LinkedIn changes class names frequently
+RESULT_LINK_SELECTOR = "a[href*='/in/']"
 NEXT_PAGE_SELECTOR = "button[aria-label='Next']"
 
 
@@ -51,6 +52,7 @@ class ProfileSearcher:
             logger.info("Searching page %d: %s", page, search_url)
             self.driver.get(search_url)
             human_delay(self.config.page_delay_min, self.config.page_delay_max)
+            human_scroll(self.driver)  # trigger lazy-load of result cards
 
             page_urls = self._extract_profile_urls_from_page()
             new_urls = [u for u in page_urls if u not in seen]

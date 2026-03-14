@@ -218,7 +218,8 @@ class Orchestrator:
         summary["gpt_cost_usd"] = cost["estimated_cost_usd"]
         summary["state_counts"] = self.store.count_by_state()
 
-        self.activity_log.log("RUN_COMPLETE", run_id=run_id, **summary)
+        summary_without_run_id = {k: v for k, v in summary.items() if k != "run_id"}
+        self.activity_log.log("RUN_COMPLETE", run_id=run_id, **summary_without_run_id)
         logger.info("=== Run complete: %s ===", run_id)
         logger.info("Summary: %s", summary)
         return summary

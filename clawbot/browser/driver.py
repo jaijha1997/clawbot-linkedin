@@ -1,24 +1,26 @@
 """Chrome/Selenium WebDriver factory with stealth and anti-detection settings."""
 
 import logging
-import os
 from pathlib import Path
 
-import undetected_chromedriver as uc
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium_stealth import stealth
+from webdriver_manager.chrome import ChromeDriverManager
 
 from clawbot.utils.exceptions import BrowserError
 
 logger = logging.getLogger(__name__)
 
 
-def create_driver(config) -> uc.Chrome:
+def create_driver(config):
     """Create and return a stealth Chrome WebDriver.
 
-    Uses undetected-chromedriver to bypass navigator.webdriver detection
-    and selenium-stealth to patch remaining automation fingerprints.
+    Uses webdriver-manager to download the correct ARM64 chromedriver on Apple
+    Silicon, and selenium-stealth to patch automation fingerprints.
     """
-    options = uc.ChromeOptions()
+    options = Options()
 
     if config.headless:
         options.add_argument("--headless=new")
@@ -30,21 +32,24 @@ def create_driver(config) -> uc.Chrome:
     options.add_argument("--disable-extensions")
     options.add_argument("--disable-plugins-discovery")
     options.add_argument("--disable-infobars")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
 
-    # Use a persistent Chrome profile so login state survives restarts
+    # Persistent Chrome profile so login state survives restarts
     user_data_dir = Path(config.user_data_dir)
     user_data_dir.mkdir(parents=True, exist_ok=True)
     options.add_argument(f"--user-data-dir={user_data_dir}")
 
     try:
-        driver = uc.Chrome(options=options, use_subprocess=True)
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
     except Exception as exc:
         raise BrowserError(f"Failed to launch Chrome: {exc}") from exc
 
     driver.implicitly_wait(config.implicit_wait)
     driver.set_page_load_timeout(config.page_load_timeout)
 
-    # Apply selenium-stealth patches on top of undetected-chromedriver
+    # Apply selenium-stealth patches
     stealth(
         driver,
         languages=["en-US", "en"],
@@ -55,7 +60,7 @@ def create_driver(config) -> uc.Chrome:
         fix_hairline=True,
     )
 
-    # Remove `navigator.webdriver` via JS
+    # Remove navigator.webdriver via JS
     driver.execute_cdp_cmd(
         "Page.addScriptToEvaluateOnNewDocument",
         {

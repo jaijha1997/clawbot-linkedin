@@ -3,6 +3,7 @@
 import logging
 import signal
 import sys
+from datetime import datetime, timezone
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 
@@ -38,7 +39,7 @@ def run_scheduler(config) -> None:
         id="full_pipeline",
         replace_existing=True,
         misfire_grace_time=3600,
-        next_run_time=__import__("datetime").datetime.now(),  # Run immediately on start
+        next_run_time=datetime.now(timezone.utc),  # Run immediately on start
     )
 
     def handle_shutdown(signum, frame):
