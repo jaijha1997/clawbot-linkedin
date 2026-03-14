@@ -1,0 +1,80 @@
+# ============================================================
+# Clawbot — Master Configuration
+# ============================================================
+
+# --- Targeting Criteria ---
+targeting:
+  roles:
+    - "Software Engineer"
+    - "Product Manager"
+    - "CTO"
+    - "VP of Engineering"
+    - "Head of Product"
+  industries:
+    - "Technology"
+    - "SaaS"
+    - "Fintech"
+    - "Artificial Intelligence"
+  seniority:
+    - "Senior"
+    - "Lead"
+    - "Staff"
+    - "Principal"
+    - "Director"
+    - "VP"
+    - "Head"
+    - "Chief"
+  locations:
+    - "San Francisco Bay Area"
+    - "New York City Metropolitan Area"
+    - "Greater Seattle Area"
+    - "Austin, Texas Metropolitan Area"
+  max_profiles_per_run: 50
+  connection_degree: 2   # Only target 2nd-degree connections
+
+# --- LinkedIn Rate Limits (keep conservative to avoid detection) ---
+rate_limits:
+  connection_requests_per_day: 20
+  connection_requests_per_hour: 5
+  message_delay_min_seconds: 30
+  message_delay_max_seconds: 90
+  page_load_delay_min_seconds: 3
+  page_load_delay_max_seconds: 8
+  between_profiles_min_seconds: 10
+  between_profiles_max_seconds: 25
+
+# --- Scheduling ---
+schedule:
+  scrape_interval_hours: 24
+  acceptance_poll_interval_hours: 6
+  timezone: "America/Los_Angeles"
+  run_at_hour: 9   # Start pipeline at 9 AM local time
+
+# --- GPT / AI Settings ---
+ai:
+  model: "gpt-4o"
+  max_tokens: 400
+  temperature: 0.8
+  persona: "friendly SaaS founder"
+  product_name: "Clawbot"
+  product_context: >
+    Clawbot is an AI-powered LinkedIn outreach automation platform that helps
+    growth teams scale personalized outreach without sacrificing quality.
+    It scrapes, filters, and messages ideal prospects autonomously.
+  message_max_chars: 1800   # LinkedIn DM limit is ~1900, leave buffer
+
+# --- Browser Settings ---
+browser:
+  headless: false          # Set true for server/cron runs
+  window_width: 1440
+  window_height: 900
+  user_data_dir: "data/chrome_profile"  # Persist Chrome session
+  implicit_wait_seconds: 10
+  page_load_timeout_seconds: 30
+
+# --- Logging ---
+logging:
+  log_level: "INFO"
+  log_file: "data/logs/activity.jsonl"
+  export_csv_on_run: true
+  csv_file: "data/logs/activity.csv"
