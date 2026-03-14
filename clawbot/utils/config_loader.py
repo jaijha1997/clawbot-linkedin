@@ -34,8 +34,8 @@ class Config:
         self.linkedin_email: str = _get_env("LINKEDIN_EMAIL")
         self.linkedin_password: str = _get_env("LINKEDIN_PASSWORD")
 
-        # OpenAI (from .env only)
-        self.openai_api_key: str = _get_env("OPENAI_API_KEY")
+        # Gemini (from .env only)
+        self.gemini_api_key: str = _get_env("GEMINI_API_KEY")
 
         # Targeting
         t = data["targeting"]

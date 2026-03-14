@@ -31,7 +31,7 @@ def mock_config():
     cfg.product_name = "Clawbot"
     cfg.product_context = "Clawbot automates LinkedIn outreach."
     cfg.message_max_chars = 1800
-    cfg.openai_api_key = "sk-test"
+    cfg.gemini_api_key = "test-gemini-key"
     return cfg
 
 
