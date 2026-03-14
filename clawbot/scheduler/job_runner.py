@@ -5,57 +5,46 @@ import signal
 import sys
 
 from apscheduler.schedulers.blocking import BlockingScheduler
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
 from clawbot.core.orchestrator import Orchestrator
 
 logger = logging.getLogger(__name__)
 
+# Module-level orchestrator so APScheduler can reference the job function
+_orchestrator = None
 
-def _make_scheduler(config) -> BlockingScheduler:
-    """Build an APScheduler instance backed by SQLite for job persistence."""
-    jobstores = {
-        "default": SQLAlchemyJobStore(url=f"sqlite:///{config.state_db_path}")
-    }
-    return BlockingScheduler(
-        jobstores=jobstores,
-        timezone=config.timezone,
-    )
+
+def _run_pipeline_job():
+    """Top-level job function (must be module-level for APScheduler serialization)."""
+    logger.info("Scheduled job: pipeline starting.")
+    try:
+        _orchestrator.run_pipeline()
+    except Exception as exc:
+        logger.exception("Pipeline job failed: %s", exc)
 
 
 def run_scheduler(config) -> None:
-    """Start the Clawbot scheduler.
+    """Start the Clawbot scheduler. Press Ctrl+C to stop."""
+    global _orchestrator
+    _orchestrator = Orchestrator(config)
 
-    Registers two jobs:
-    - scrape_and_connect: runs the full pipeline on the configured interval.
-    - poll_and_message: polls for acceptances and sends messages.
+    # Use in-memory job store — pipeline state is persisted in SQLite separately
+    scheduler = BlockingScheduler(timezone=config.timezone)
 
-    Pressing Ctrl+C gracefully shuts down the scheduler.
-    """
-    orchestrator = Orchestrator(config)
-    scheduler = _make_scheduler(config)
-
-    def full_pipeline_job():
-        logger.info("Scheduled job: full_pipeline_job starting.")
-        try:
-            orchestrator.run_pipeline()
-        except Exception as exc:
-            logger.exception("Pipeline job failed: %s", exc)
-
-    # Register jobs (replace_existing=True so restarts don't duplicate)
     scheduler.add_job(
-        full_pipeline_job,
+        _run_pipeline_job,
         trigger="interval",
         hours=config.scrape_interval_hours,
         id="full_pipeline",
         replace_existing=True,
-        misfire_grace_time=3600,  # Allow up to 1hr late start
+        misfire_grace_time=3600,
+        next_run_time=__import__("datetime").datetime.now(),  # Run immediately on start
     )
 
     def handle_shutdown(signum, frame):
         logger.info("Shutdown signal received — stopping scheduler.")
         scheduler.shutdown(wait=False)
-        orchestrator.close()
+        _orchestrator.close()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, handle_shutdown)
